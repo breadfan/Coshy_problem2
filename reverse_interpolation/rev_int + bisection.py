@@ -1,10 +1,21 @@
 import numpy as np
-
-
-
+import sys
 
 def func(x):
     return np.sin(x) + x**2/2
+
+
+def bisection(a, b, eps, poly, phi):
+    counter = 0
+    while (poly(a) - phi) * (poly(b) - phi) < 0:
+        counter += 1
+        c = (a + b)/2
+        if abs(poly(c) - phi) < eps:
+            return counter, c, a, b
+        if (poly(a) - phi) * (poly(c) - phi) < 0:
+            b = c
+        elif ((poly(c) - phi) * (poly(b) - phi)) < 0:
+            a = c
 
 
 def lagrange(table, n):
@@ -20,18 +31,6 @@ def lagrange(table, n):
         poly += table[k][1] * psi   # poly = poly + f(x_k)*psi - MAIN FORM OF LAGRANGE-POLYNOMIAL INTERPOLATION
     return poly
 
-def lagrangeValue(table, n, y):
-    poly = 0.0  # giving a type of a polynomial
-    for k in range(n):
-        psi = 1.0
-        coeff = 1.0
-        for i in range(n):
-            if i != k:
-                psi *= (y - table[i][0])  # multiplication to (y - x_i)
-                coeff *= table[k][0] - table[i][0]
-        psi /= coeff
-        poly += table[k][1] * psi  # poly = poly + f(x_k)*psi - MAIN FORM OF LAGRANGE-POLYNOMIAL INTERPOLATION
-    return poly
 
 def newton(table, n):
     poly = np.poly1d([table[0][1]])     # writing A_0
@@ -51,62 +50,57 @@ def newton(table, n):
 
 def main():
     program = True
-    while(program):
-
+    while program:
         try:
             print("Введите, пожалуйста, степень n(n < m + 1 =", m + 1, ')')
             n = int(input())
             while n > m:
                 print("Введено число, большее m; либо недопустимое число. Пожалуйста, введите корректное n(n < m + 1 =  ", m+1, ')')
                 n = int(input())
-            y = np.float64(input("Введите, пожалуйста, точку интерполяции:"))
-        except:
+            f = np.float64(input("Введите, пожалуйста, значение, которое должна принимать функция(F):"))
+        except SyntaxError:
             print("Не могу понять введенное значение")
-        program = False
-
-        table.sort(key=lambda pair: abs(y - pair[0]))
+        table.sort(key=lambda pair: abs(f - pair[0]))
         polynomial = lagrange(table, n + 1)
-        errorL = abs(func(y) - lagrangeValue(table, n + 1, y))
-
-        #вывод отсортированной таблицы:
-        print("Отсортированная таблица для точки интерполяции y = ", y)
-        for i in range(len(table)):
-            print("x = ", '{:<30}'.format(table[i][0]), "f(x) = ", '{:>30}'.format(table[i][1]))
         print("Ваш полином в форме Лагранжа: \n", polynomial)
-        print("Значение полинома в точке в форме Лагранжа: ", lagrangeValue(table, n + 1, y))
-        print("Значение функции в точке: ", func(y))
-        print("Погрешность полинома в форме Лагранжа: ", errorL)
-
         polynomial = newton(table, n + 1)
-        errorN = abs(func(y) - polynomial(y))
         print("Ваш полином в форме Ньютона: \n", polynomial)
-        print("Значение полинома в точке в форме Ньютона:", polynomial(y))
-        print("Значение функции в точке:", func(y))
-        print("Погрешность полинома в форме Ньютона:", errorN)
-        #продолжение выполнения программы
-        misspell = True
-        while misspell:
-            try:
-                str = input("Хотите ли вы продолжать вычисления?(Да/Нет)")
-                if (str.lower() == "да") | (str.lower == "y"):
-                    program = True
-                misspell = False
-            except:
-                print("Введено слово некорректного формата. Пожалуйста, ответьте \"Да\", либо \"Нет\" ")
+        # bisection
+        print("Найдём корни полинома с помощью метода бисекции:")
+        h = np.float64(input("Введите, пожалуйста, значение шага(h): "))
+        eps = 10**(-8)
+        currA = a
+        currB = currA + h
+        while currB <= b:
+            if (polynomial(currA) - f) * (polynomial(currB) - f) < 0:  # if there is a root
+                resultArr = bisection(currA, currB, eps, polynomial, f)
+                if np.abs(polynomial(resultArr[1]) - f) < eps:
+                    print("\nКоличество шагов N для достижения точности ", eps, ':', resultArr[0])
+                    print("Приближенное решение уравнения: ", resultArr[1])
+                    print("Границы отрезка: a = ", resultArr[2], " b = ", resultArr[3])
+                    print("Длина последнего отрезка: ", np.abs(resultArr[3] - resultArr[2]))
+                    print("Абсолютная величина невязки/погрешность: ", np.abs(func(resultArr[1]) - f))
+            # print(polynomial(currA), " ", polynomial(currB), " ", currA, " ", currB, '\n') # for debug
+            currA = currB
+            currB += h
+        # продолжение выполнения программы
+        ans = input("Хотите ли вы продолжать вычисления?(Да/Нет):")
+        if (ans.lower() != "да") & (ans.lower() != "y") & (ans.lower() != "yes"):
+            sys.exit()
 
 
-print("Программа для вычисления многочлена с помощью метода интерполяции\n Вариант 11".center(30))
+print("Программа для вычисления обратного многочлена с помощью метода интерполяции\n Вариант 11".center(30))
 print("Подготовил Данил Кизеев, 222 группа \n 2019".center(30))
 table = []
 a = np.float64(input("Введите, пожалуйста, левую границу промежутка(a):"))
 b = np.float64(input("Введите, пожалуйста, правую границу промежутка(b):"))
 m = int(input("Введите, пожалуйста, степень разбиения(число m):"))
-#table fullfilling
+# table filling
 for j in range(m + 1):
     x = a + j * (b - a) / m
     table.append((x, func(x)))
 
-#table printing
+# table printing
 print("Таблица значений".center(60))
 for i in range(len(table)):
     print("x = ", '{:<30}'.format(table[i][0]), "f(x) = ", '{:>30}'.format(table[i][1]))
